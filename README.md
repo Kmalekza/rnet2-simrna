@@ -10,7 +10,7 @@ The only input is the sequence. An experimental structure is optional and is use
 
 The protocol was tested on three riboswitches from the RNAnneal benchmark: **6TFF** (NAD⁺), **6WJR** (FMN, apo) and **6Q57** (THF). They are compared with RNAnneal (Herron, …, Tiwary, bioRxiv 2026.02.01.703098). The full write-up is in [`results/report.pdf`](results/report.pdf).
 
-**Illustrated protocol page:** [`docs/index.html`](docs/index.html) walks through the protocol step by step, with a data-flow chart, a diagram of how SimRNA folds, and all the results. To view it as a web page, turn on GitHub Pages (Settings → Pages → Deploy from a branch → `main`, folder `/docs`); it then appears at `https://USERNAME.github.io/rnet2-simrna/`. To view it locally, open the file in a browser.
+**Illustrated protocol page:** [`README.html`](README.html) walks through the protocol step by step, with a data-flow chart, a diagram of how SimRNA folds, and all the results. GitHub shows HTML files as source, so download it or open it in a browser from a local copy of the repository.
 
 ## Results in brief
 
@@ -112,6 +112,7 @@ analysis/          run_validation.sh, collect_validation.py, make_report.py
 data/              targets.csv, structures/*.cif (PDB), reference_pairs.json, validation_pairs_*.json
 results/           pipeline/{6TFF,6WJR,6Q57}/, validation/*.csv, figures/, report.pdf
 licenses/          Apache-2.0 license of the RibonanzaNet2 model code
+README.html        illustrated protocol page (open in a browser)
 ```
 
 ## Caveats
