@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 """Scoring a model against a reference structure: TM-score and RMSD (US-align, C1'), INF (rnapolis canonical pairs).
 
 External programs, found on PATH or through environment variables:

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 """Base pairs from RibonanzaNet2: one attention head, symmetrised and APC-corrected, decoded greedily.
 
 The head (layer 25, head 1; flat index 288 of 48 x 12) was chosen once, as the head whose attention best matched known base

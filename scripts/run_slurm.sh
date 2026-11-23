@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 # RNA sequence -> 3D structure with RibonanzaNet2 + SimRNA, on a Slurm cluster.
 #
 #   bash scripts/run_slurm.sh NAME SEQUENCE_OR_FASTA [REFERENCE.cif|pdb [CHAIN]]

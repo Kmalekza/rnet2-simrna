@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 """RibonanzaNet2 + SimRNA, step by step. Normally driven by scripts/run_slurm.sh or scripts/run_local.sh.
 
   python -m rnet2_simrna.cli prep NAME SEQUENCE_OR_FASTA OUTDIR [--ref FILE] [--chain C] [--iters N] [--runs R] [--pairs JSON|none]

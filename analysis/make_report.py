@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 """Figures and PDF report for RibonanzaNet2 + SimRNA on 6TFF, 6WJR, 6Q57.  (needs matplotlib, pandas, reportlab)
 
   python analysis/make_report.py  ->  results/figures/*.png, results/report.pdf

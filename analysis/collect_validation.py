@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 """Collect the validation runs (analysis/run_validation.sh) into the tables used by analysis/make_report.py.
 
   python analysis/collect_validation.py [RUNS_DIR]     (default results/validation_runs)

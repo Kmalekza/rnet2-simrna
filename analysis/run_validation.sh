@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 # Validation runs: the same SimRNA protocol with four sources of base pairs, on 6TFF, 6WJR and 6Q57 (12 runs of 8 x 10 replicas).
 #   nocon   no pairs (SimRNA alone)
 #   eterna  EternaFold MEA pairs          (data/validation_pairs_<target>_eterna.json)

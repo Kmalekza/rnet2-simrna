@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Karim Malekzadeh
 # Download the RibonanzaNet2 checkpoint (Kaggle model shujun717/ribonanzanet2, public, no login needed) into
 # weights/ribonanzanet2/ (pairwise.yaml + pytorch_model_fsdp.bin, ~400 MB).
 set -euo pipefail

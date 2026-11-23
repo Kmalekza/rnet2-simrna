@@ -131,4 +131,6 @@ licenses/          Apache-2.0 license of the RibonanzaNet2 model code
 * RNAnneal: Herron et al., bioRxiv 2026.
 * Crystal structures are from the PDB (6TFF, 6WJR, 6Q57).
 
-No license has been chosen yet for the original code in this repository; all rights reserved.
+## License
+
+MIT, see [`LICENSE`](LICENSE). The copied `rnet2_simrna/ribonanzanet.py` stays under Apache-2.0 (`licenses/APACHE-2.0-RNAPro.txt`). SimRNA, US-align, rnapolis and the RibonanzaNet2 weights are not included and keep their own licenses; note that SimRNA is free for academic use only.
