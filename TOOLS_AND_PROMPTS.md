@@ -10,9 +10,8 @@ cluster.
 * **Numbering** is the order of the prompts in the session; three messages sent while Claude was still working
   are marked "mid-task".
 
-This session continued an earlier project on the same exercise: RNA-FM / structRFM language models with RNAPro 3D
-prediction. That work has its own prompt log, which is not part of this repository. Prompts from this session that were
-only about that earlier work (RNAPro, RhoFold+, Boltz-2) are listed briefly in section 3, so nothing is hidden.
+This session continued an earlier project on the same exercise (RNA-FM / structRFM with RNAPro), which has its own
+prompt log and is not part of this repository. Prompts here are the ones that built RibonanzaNet2 + SimRNA.
 
 ## 1. Tools
 
@@ -249,25 +248,3 @@ The Mermaid flowchart didn't render on GitHub Pages. It was replaced by a hand-d
 
 **68–70 · 21:34–21:49** — the reply to Prof. Tiwary's exercise email; "where is TOOLS_AND_PROMPTS.md?"; "yes, create it and push to github"
 Drafted the reply email and wrote this file.
-
-## 3. Other prompts in the same session (not part of this protocol)
-
-These are about the earlier RNAPro-based work, or are plain questions. They are listed for completeness:
-
-* 1 "where are we and what was our last discussion"
-* 2 "how RNApro works? …"
-* 3 "what model weights means?"
-* 9 "is it possible to use two The advisor models( RibonanzaNet2, and structRFM) or  more than one structRFM in RNAPro?"
-* 10 "run the RhoFold+ template test on 9HRF and 12CJ"
-* 11 "how its works for 6TFF, 6WJR, and 6Q57?"
-* 12 "what did we do in the extentions?"
-* 13 "in the RNAPro model, is it possibel instead of the chnaging the advisor(RibonanzaNet2) change the 3d model prediction?"
-* 14 "yes, run Boltz-2 with RibonanzaNet2 pairs and crystal pairs"
-* 15 "how about for 6TFF, 6WJR, and 6Q57?"
-* 16 "run the tertiary contact test on 9HRF and 12CJ"
-* mid-task, 00:33 "how RibonanzaNet2 create constrain? does it change any thin in the Boltz-2 protocaol and steps?"
-* 31 "this work is great."
-
-One lesson from these runs shaped this protocol. In Boltz-2 (prompts 14–16), base-pair and tertiary-contact
-constraints, even from the crystal, barely changed the 3D result. That is why a builder that obeys restraints (SimRNA)
-was chosen for the combination.
