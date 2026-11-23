@@ -9,3 +9,4 @@ results/validation_runs/
 *.trafl
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
