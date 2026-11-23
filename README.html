@@ -98,19 +98,22 @@ td.hi{font-weight:600;color:var(--lm)}
 .dsvg .ts{fill:var(--muted);font-family:var(--body);font-size:10.5px}
 .dsvg .th{fill:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.09em}
 .links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0 0;font-size:14px}.links a{color:var(--lm);font-weight:500;text-decoration:none;border-bottom:1px solid currentColor}.links a:hover,.links a:focus-visible{color:var(--fg)}
+
+.flow{min-width:760px;width:100%;height:auto;display:block;font-family:var(--body)}
+.flow rect{fill:var(--surface);stroke-width:1.6}
+.flow .f-src{stroke:var(--muted);stroke-dasharray:4 3}
+.flow .f-in{stroke:var(--fg);stroke-width:2.4}
+.flow .f-lm{stroke:var(--lm)} .flow .f-td{stroke:var(--td)} .flow .f-ctl{stroke:var(--ctl)}
+.flow .f-lmo{fill:var(--lm-soft);stroke:var(--lm)} .flow .f-tdo{fill:var(--td-soft);stroke:var(--td)} .flow .f-ctlo{fill:var(--ctl-soft);stroke:var(--ctl)}
+.flow .f-ref{stroke:var(--ctl)}
+.flow .f-t{fill:var(--fg);font-size:12.5px;font-weight:600}
+.flow .f-s{fill:var(--muted);font-size:11px}
+.flow .f-l{fill:var(--muted);font-size:10.5px;font-style:italic}
+.flow .f-e{stroke:var(--muted);stroke-width:1.4;fill:none}
+.flow .f-main{stroke:var(--fg);stroke-width:1.8}
+.flow .f-dash{stroke-dasharray:5 4}
+.flow .f-ah{fill:var(--muted)}
 </style>
-<script type="module">
-  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
-  const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const css = getComputedStyle(document.documentElement);
-  const v = n => css.getPropertyValue(n).trim();
-  mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: "base",
-    flowchart: { useMaxWidth: false },
-    themeVariables: { darkMode: dark, background: v("--bg"), mainBkg: v("--surface"), primaryColor: v("--surface"),
-      primaryTextColor: v("--fg"), lineColor: v("--muted"), primaryBorderColor: v("--line"), nodeBorder: v("--line"),
-      edgeLabelBackground: v("--bg"), fontFamily: "IBM Plex Sans, system-ui, sans-serif", fontSize: "15px" } });
-</script>
-<style>.mermaid{background:none;border:0;margin:4px 0}.mermaid svg{display:block;margin:0 auto}</style>
 </head>
 <body>
 
@@ -125,49 +128,90 @@ td.hi{font-weight:600;color:var(--lm)}
   <section class="stage" id="dataflow">
     <div class="tag">Data flow</div>
     <h2>How each step feeds the next</h2>
-    <p class="small">The pipeline as it runs (<code>scripts/run_slurm.sh</code> or <code>scripts/run_local.sh</code>). Boxes are steps, labels on the arrows are the files passed between them, cylinders are inputs and model weights, rounded ends are outputs. Blue is the language model, orange is SimRNA, green is evaluation. The reference structure (dashed) joins only at the scoring step, after the model is built, and can be left out.</p>
+    <p class="small">The pipeline as it runs (<code>scripts/run_slurm.sh</code> or <code>scripts/run_local.sh</code>). Solid boxes are steps, dashed boxes are inputs and model weights, rounded ends are outputs; the sequence (thick border) is the only required input. Blue is the language model, orange is SimRNA, green is evaluation. The reference structure (dashed) joins only at the scoring step, after the model is built, and can be left out.</p>
     <div class="tree-wrap">
-<pre class="mermaid">
-flowchart TB
-  SEQ[("INPUT: RNA sequence<br/>A/C/G/U string or FASTA")]
-  W2[("RibonanzaNet2 weights<br/>frozen, 101M parameters<br/>scripts/get_weights.sh")]
-  TR[("Training RNAs<br/>SPOT-RNA PDB TR1 + 500 bpRNA")]
-  SIM[("SimRNA 3.20<br/>energy tables in data/")]
-  XT[("Reference structure, optional<br/>experimental, same sequence")]
+<svg class="flow" viewBox="0 0 860 620" role="img" aria-label="Data flow: the RNA sequence and the RibonanzaNet2 weights go into job 1, which predicts base pairs with attention head L25H1 (chosen once on 612 training RNAs) and writes pairs.txt and the SimRNA inputs. Job 2 runs SimRNA eight times with ten replicas each. Job 3 pools, clusters and rebuilds all atoms, giving model_1.pdb as the prediction. Only if a reference structure is given, the models are scored, giving report.md with TM-score, RMSD and INF.">
+  <defs>
+    <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="f-ah" d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
 
-  PROBE["head selection, done once beforehand<br/>pick the best attention head"]
-  PREP["job 1 · rnet2_simrna.cli prep<br/>RibonanzaNet2 head L25H1 → base pairs<br/>split into dot-bracket layers"]
-  FOLD["job 2 · SimRNA, 8 runs in parallel<br/>10 replicas × 1.6 M steps each"]
-  POST["job 3 · rnet2_simrna.cli post<br/>pool, cluster, rebuild all atoms"]
-  SC["score, only if a reference is given<br/>US-align · rnapolis"]
+  <!-- inputs -->
+  <rect class="f-src" x="20" y="20" width="180" height="54" rx="6"/>
+  <text class="f-t" x="110" y="42" text-anchor="middle">Training RNAs</text>
+  <text class="f-s" x="110" y="60" text-anchor="middle">612 with known base pairs</text>
 
-  O1(["pairs.txt<br/>base pairs, pseudoknots in [ ]"])
-  O2(["model_1.pdb = prediction<br/>model_2..5.pdb"])
-  O3(["report.md · report.json<br/>TM · RMSD · INF"])
+  <rect class="f-src" x="220" y="20" width="190" height="54" rx="6"/>
+  <text class="f-t" x="315" y="42" text-anchor="middle">RibonanzaNet2 weights</text>
+  <text class="f-s" x="315" y="60" text-anchor="middle">frozen · scripts/get_weights.sh</text>
 
-  TR -->|"612 RNAs with known pairs"| PROBE
-  W2 --> PROBE
-  PROBE -->|"head index 288, fixed in lm.py"| PREP
-  SEQ --> PREP
-  W2 --> PREP
-  PREP --> O1
-  PREP -->|"runs/seq + runs/ss"| FOLD
-  SIM --> FOLD
-  FOLD -->|"r01..r08_01..10.trafl"| POST
-  POST --> O2
-  O2 --> SC
-  XT -.->|"evaluation only"| SC
-  SC --> O3
+  <rect class="f-in" x="430" y="20" width="190" height="54" rx="6"/>
+  <text class="f-t" x="525" y="42" text-anchor="middle">INPUT: RNA sequence</text>
+  <text class="f-s" x="525" y="60" text-anchor="middle">A/C/G/U string or FASTA</text>
 
-  classDef lm stroke:#4a8bbf,stroke-width:2px
-  classDef td stroke:#c2693a,stroke-width:2px
-  classDef ctl stroke:#7d8f3a,stroke-width:2px
-  classDef src stroke:#8a9590,stroke-width:1.5px,stroke-dasharray:4 3
-  class PROBE,PREP,O1 lm
-  class FOLD,POST,O2 td
-  class SC,O3 ctl
-  class SEQ,W2,TR,SIM,XT src
-</pre>
+  <rect class="f-src" x="640" y="20" width="200" height="54" rx="6"/>
+  <text class="f-t" x="740" y="42" text-anchor="middle">SimRNA 3.20</text>
+  <text class="f-s" x="740" y="60" text-anchor="middle">energy tables in data/</text>
+
+  <!-- language-model lane -->
+  <rect class="f-lm" x="20" y="124" width="180" height="62" rx="6"/>
+  <text class="f-t" x="110" y="146" text-anchor="middle">Head selection</text>
+  <text class="f-s" x="110" y="162" text-anchor="middle">done once beforehand</text>
+  <text class="f-s" x="110" y="176" text-anchor="middle">best of 576 attention heads</text>
+
+  <rect class="f-lm" x="290" y="120" width="270" height="72" rx="6"/>
+  <text class="f-t" x="425" y="142" text-anchor="middle">Job 1 · prep</text>
+  <text class="f-s" x="425" y="160" text-anchor="middle">RibonanzaNet2 head L25H1 → base pairs</text>
+  <text class="f-s" x="425" y="175" text-anchor="middle">split into dot-bracket layers</text>
+
+  <rect class="f-out f-lmo" x="620" y="130" width="200" height="52" rx="26"/>
+  <text class="f-t" x="720" y="152" text-anchor="middle">pairs.txt</text>
+  <text class="f-s" x="720" y="168" text-anchor="middle">base pairs, pseudoknots in [ ]</text>
+
+  <!-- folding lane -->
+  <rect class="f-td" x="290" y="246" width="270" height="58" rx="6"/>
+  <text class="f-t" x="425" y="268" text-anchor="middle">Job 2 · SimRNA folding</text>
+  <text class="f-s" x="425" y="286" text-anchor="middle">8 runs × 10 replicas × 1.6 M steps, in parallel</text>
+
+  <rect class="f-td" x="290" y="356" width="270" height="58" rx="6"/>
+  <text class="f-t" x="425" y="378" text-anchor="middle">Job 3 · post</text>
+  <text class="f-s" x="425" y="396" text-anchor="middle">pool, cluster, rebuild all atoms</text>
+
+  <rect class="f-out f-tdo" x="290" y="466" width="270" height="54" rx="27"/>
+  <text class="f-t" x="425" y="488" text-anchor="middle">model_1.pdb = the prediction</text>
+  <text class="f-s" x="425" y="505" text-anchor="middle">model_2..5.pdb as alternatives</text>
+
+  <!-- evaluation only -->
+  <rect class="f-src f-ref" x="640" y="356" width="200" height="58" rx="6"/>
+  <text class="f-t" x="740" y="378" text-anchor="middle">Reference structure</text>
+  <text class="f-s" x="740" y="396" text-anchor="middle">optional · same RNA, experimental</text>
+
+  <rect class="f-ctl" x="640" y="466" width="200" height="54" rx="6"/>
+  <text class="f-t" x="740" y="488" text-anchor="middle">Score</text>
+  <text class="f-s" x="740" y="505" text-anchor="middle">only if a reference is given</text>
+
+  <rect class="f-out f-ctlo" x="640" y="556" width="200" height="54" rx="27"/>
+  <text class="f-t" x="740" y="578" text-anchor="middle">report.md · report.json</text>
+  <text class="f-s" x="740" y="595" text-anchor="middle">TM-score · RMSD · INF</text>
+
+  <!-- arrows -->
+  <line class="f-e" x1="110" y1="74" x2="110" y2="122" marker-end="url(#fa)"/>
+  <line class="f-e" x1="260" y1="74" x2="170" y2="122" marker-end="url(#fa)"/>
+  <line class="f-e" x1="360" y1="74" x2="360" y2="118" marker-end="url(#fa)"/>
+  <line class="f-e f-main" x1="525" y1="74" x2="510" y2="118" marker-end="url(#fa)"/>
+  <line class="f-e" x1="200" y1="155" x2="288" y2="155" marker-end="url(#fa)"/>
+  <text class="f-l" x="244" y="148" text-anchor="middle">head 288</text>
+  <line class="f-e" x1="560" y1="156" x2="618" y2="156" marker-end="url(#fa)"/>
+  <line class="f-e f-main" x1="425" y1="192" x2="425" y2="244" marker-end="url(#fa)"/>
+  <text class="f-l" x="435" y="222">seq + ss (pairs as restraints)</text>
+  <path class="f-e" d="M 840 74 L 850 74 L 850 275 L 562 275" marker-end="url(#fa)"/>
+  <line class="f-e f-main" x1="425" y1="304" x2="425" y2="354" marker-end="url(#fa)"/>
+  <text class="f-l" x="435" y="333">32,080 snapshots</text>
+  <line class="f-e f-main" x1="425" y1="414" x2="425" y2="464" marker-end="url(#fa)"/>
+  <line class="f-e" x1="560" y1="493" x2="638" y2="493" marker-end="url(#fa)"/>
+  <line class="f-e f-dash" x1="740" y1="414" x2="740" y2="464" marker-end="url(#fa)"/>
+  <text class="f-l" x="750" y="443">evaluation only</text>
+  <line class="f-e" x1="740" y1="520" x2="740" y2="554" marker-end="url(#fa)"/>
+</svg>
     </div>
   </section>
 
