@@ -1,0 +1,60 @@
+{
+ "name": "6Q57",
+ "length": 89,
+ "sequence": "GGAGAGUAGAUGAUUCGCGUUAAGUGUGUGUGAAUGGGAUGUCGUCACACAACGAAGCGAGAGCGCGGUGAAUCAUUGCAUCCGCUCCA",
+ "pairs": "((((.....((((((((((....(...((((((.(.[[[[[..)))))))..)..........)))...)))))))..]]]]].)))).",
+ "n_pairs": 27,
+ "n_pk_pairs": 5,
+ "snapshots": 32080,
+ "models": [
+  {
+   "model": "model_1.pdb",
+   "cluster_pct": 96.26,
+   "TM": 0.3186,
+   "RMSD": 13.75,
+   "RMSD_core": 4.3,
+   "n_core": 59,
+   "INF": 0.657535505639407,
+   "pairs_model": 34,
+   "pairs_ref": 30,
+   "pairs_shared": 21
+  },
+  {
+   "model": "model_2.pdb",
+   "cluster_pct": 2.18,
+   "TM": 0.2459,
+   "RMSD": 14.75,
+   "RMSD_core": 4.6,
+   "n_core": 46,
+   "INF": 0.5902432522055577,
+   "pairs_model": 31,
+   "pairs_ref": 30,
+   "pairs_shared": 18
+  },
+  {
+   "model": "model_3.pdb",
+   "cluster_pct": 1.25,
+   "TM": 0.3441,
+   "RMSD": 11.61,
+   "RMSD_core": 4.66,
+   "n_core": 64,
+   "INF": 0.6038596398555418,
+   "pairs_model": 33,
+   "pairs_ref": 30,
+   "pairs_shared": 19
+  },
+  {
+   "model": "model_4.pdb",
+   "cluster_pct": 0.31,
+   "TM": 0.2878,
+   "RMSD": 11.9,
+   "RMSD_core": 4.62,
+   "n_core": 55,
+   "INF": 0.7214084193623482,
+   "pairs_model": 31,
+   "pairs_ref": 30,
+   "pairs_shared": 22
+  }
+ ],
+ "reference": "data/structures/6Q57.cif"
+}

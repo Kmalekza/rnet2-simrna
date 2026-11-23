@@ -1,0 +1,11 @@
+# downloaded, not redistributable or too large
+weights/
+third_party/
+# SimRNA working files (trajectories are GBs)
+results/pipeline/*/runs/
+results/pipeline/*/logs/
+results/pipeline/*/meta.json
+results/validation_runs/
+*.trafl
+__pycache__/
+*.pyc

@@ -1,0 +1,3 @@
+>6TFF RibonanzaNet2 L25H1, 16 pairs, 0 in pseudoknots
+GGCUUCAACAACCCCGUAGGUUGGGCCGAAAGGCAGCGAAUCUACUGGAGCC
+((((((.........(((((((..(((....)))....))))))).))))))

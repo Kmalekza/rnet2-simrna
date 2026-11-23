@@ -1,0 +1,9 @@
+torch>=2.1
+numpy>=1.24,<2.0
+pandas>=2.0
+einops>=0.7
+pyyaml>=6.0
+gemmi>=0.6
+rnapolis==0.17.0
+matplotlib>=3.7
+reportlab>=4.0

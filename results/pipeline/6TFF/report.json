@@ -1,0 +1,72 @@
+{
+ "name": "6TFF",
+ "length": 52,
+ "sequence": "GGCUUCAACAACCCCGUAGGUUGGGCCGAAAGGCAGCGAAUCUACUGGAGCC",
+ "pairs": "((((((.........(((((((..(((....)))....))))))).))))))",
+ "n_pairs": 16,
+ "n_pk_pairs": 0,
+ "snapshots": 32080,
+ "models": [
+  {
+   "model": "model_1.pdb",
+   "cluster_pct": 63.24,
+   "TM": 0.2564,
+   "RMSD": 13.8,
+   "RMSD_core": 3.77,
+   "n_core": 36,
+   "INF": 0.9219544457292888,
+   "pairs_model": 17,
+   "pairs_ref": 20,
+   "pairs_shared": 17
+  },
+  {
+   "model": "model_2.pdb",
+   "cluster_pct": 15.58,
+   "TM": 0.342,
+   "RMSD": 9.82,
+   "RMSD_core": 2.96,
+   "n_core": 42,
+   "INF": 0.8959786703810407,
+   "pairs_model": 18,
+   "pairs_ref": 20,
+   "pairs_shared": 17
+  },
+  {
+   "model": "model_3.pdb",
+   "cluster_pct": 6.54,
+   "TM": 0.2686,
+   "RMSD": 13.9,
+   "RMSD_core": 3.17,
+   "n_core": 33,
+   "INF": 0.9486832980505138,
+   "pairs_model": 18,
+   "pairs_ref": 20,
+   "pairs_shared": 18
+  },
+  {
+   "model": "model_4.pdb",
+   "cluster_pct": 2.18,
+   "TM": 0.2726,
+   "RMSD": 8.39,
+   "RMSD_core": 3.77,
+   "n_core": 41,
+   "INF": 0.9486832980505138,
+   "pairs_model": 18,
+   "pairs_ref": 20,
+   "pairs_shared": 18
+  },
+  {
+   "model": "model_5.pdb",
+   "cluster_pct": 2.18,
+   "TM": 0.3762,
+   "RMSD": 6.41,
+   "RMSD_core": 3.34,
+   "n_core": 46,
+   "INF": 0.9219544457292888,
+   "pairs_model": 17,
+   "pairs_ref": 20,
+   "pairs_shared": 17
+  }
+ ],
+ "reference": "data/structures/6TFF.cif"
+}
