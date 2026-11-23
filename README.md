@@ -113,6 +113,7 @@ data/              targets.csv, structures/*.cif (PDB), reference_pairs.json, va
 results/           pipeline/{6TFF,6WJR,6Q57}/, validation/*.csv, figures/, report.pdf
 licenses/          Apache-2.0 license of the RibonanzaNet2 model code
 README.html        illustrated protocol page (open in a browser)
+TOOLS_AND_PROMPTS.md  every tool used and every prompt given while building this (Claude Code session)
 ```
 
 ## Caveats
@@ -122,6 +123,10 @@ README.html        illustrated protocol page (open in a browser)
 * The full-atom rebuild adds a small random variation (6WJR `model_1`: 21.9 Å here, 21.7 Å in the validation tables).
 * RNAnneal's numbers for 6WJR and 6Q57 were read off the preprint's figures (about ±1 Å). Its text and Fig. 2e disagree on 6WJR.
 * RNAnneal's RMSD is probably over all atoms; here it is one backbone atom per nucleotide.
+
+## How this was built
+
+The code, analysis and write-up were developed with Claude Code (Anthropic) as a coding agent. Every tool and every prompt is listed in [`TOOLS_AND_PROMPTS.md`](TOOLS_AND_PROMPTS.md).
 
 ## Credits
 
