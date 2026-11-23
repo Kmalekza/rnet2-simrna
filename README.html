@@ -97,6 +97,7 @@ td.hi{font-weight:600;color:var(--lm)}
 .dsvg .t{fill:currentColor;font-family:var(--body);font-size:12px;font-weight:500}
 .dsvg .ts{fill:var(--muted);font-family:var(--body);font-size:10.5px}
 .dsvg .th{fill:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.09em}
+.links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0 0;font-size:14px}.links a{color:var(--lm);font-weight:500;text-decoration:none;border-bottom:1px solid currentColor}.links a:hover,.links a:focus-visible{color:var(--fg)}
 </style>
 <script type="module">
   import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
@@ -118,6 +119,7 @@ td.hi{font-weight:600;color:var(--lm)}
     <h1>RibonanzaNet2 + SimRNA protocol</h1>
     <p class="lede">A language model and a 3D folding program, from different papers, joined by one hand-off. The only input is the RNA sequence: RibonanzaNet2 reads it and proposes base pairs, including pseudoknots, and SimRNA folds a 3D chain under those pairs. The crystal structure is never an input. It is used only after the prediction, to score it, and in a separate validation experiment (section 3) that compared RibonanzaNet2's pairs with other sources.</p>
     <div class="legend"><span style="--k:var(--lm)">Language-model lane</span><span style="--k:var(--td)">3D folding lane</span><span style="--k:var(--ctl)">Evaluation only, after the prediction</span></div>
+    <p class="links"><a href="https://github.com/Kmalekza/rnet2-simrna">Code on GitHub</a><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/results/report.pdf">PDF report</a><a href="https://github.com/Kmalekza/rnet2-simrna/tree/main/results/pipeline">Predicted 3D models</a><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/README.md">Install and run</a></p>
   </header>
 
   <section class="stage" id="dataflow">
@@ -549,10 +551,10 @@ bash scripts/run_local.sh myrna myrna.fasta</div>
     <div class="tbl"><table>
       <thead><tr><th>What</th><th>Path in this repository</th></tr></thead>
       <tbody>
-        <tr><td>PDF report of this protocol (6 pages, 4 figures)</td><td><code>results/report.pdf</code></td></tr>
+        <tr><td>PDF report of this protocol (6 pages, 4 figures)</td><td><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/results/report.pdf"><code>results/report.pdf</code></a></td></tr>
         <tr><td>Pipeline: sequence → 3D model</td><td><code>scripts/run_slurm.sh</code>, <code>scripts/run_local.sh</code>, <code>rnet2_simrna/</code> (<code>lm.py</code>, <code>cli.py</code>, <code>score.py</code>)</td></tr>
         <tr><td>RibonanzaNet2 weights download</td><td><code>scripts/get_weights.sh</code></td></tr>
-        <tr><td>Pipeline output for the three riboswitches</td><td><code>results/pipeline/6TFF</code>, <code>6WJR</code>, <code>6Q57</code></td></tr>
+        <tr><td>Pipeline output for the three riboswitches</td><td><a href="https://github.com/Kmalekza/rnet2-simrna/tree/main/results/pipeline"><code>results/pipeline/</code></a> 6TFF, 6WJR, 6Q57</td></tr>
         <tr><td>Validation runs (four sources of pairs)</td><td><code>analysis/run_validation.sh</code>, <code>analysis/collect_validation.py</code>; results in <code>results/validation/summary.csv</code>, <code>scores.csv</code></td></tr>
         <tr><td>Every-snapshot analysis</td><td><code>results/validation/snapshots.csv.gz</code>, <code>frames_rmsd.csv</code></td></tr>
         <tr><td>Figures and PDF</td><td><code>analysis/make_report.py</code> → <code>results/figures/</code>, <code>results/report.pdf</code></td></tr>

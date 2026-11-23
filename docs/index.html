@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="RibonanzaNet2 + SimRNA: sequence-only RNA 3D structure prediction, protocol and results.">
+<title>RibonanzaNet2 + SimRNA Protocol</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: one vertical flow; the middle splits into two lanes (language model | 3D folding) joined by a hand-off of base pairs. */
+:root{
+  --bg:#f5f7f6; --surface:#ffffff; --fg:#17201d; --muted:#5b6a65; --line:#c9d3cf;
+  --lm:#2f6f9f; --lm-soft:#e3eef6; --td:#a3532a; --td-soft:#f6e8df; --ctl:#5d6b2e; --ctl-soft:#eef0df;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#19211e; --fg:#e4ebe8; --muted:#97a6a0; --line:#33403b;
+  --lm:#7fb5de; --lm-soft:#1c2c38; --td:#e39a72; --td-soft:#352419; --ctl:#b8c77a; --ctl-soft:#272b1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#19211e; --fg:#e4ebe8; --muted:#97a6a0; --line:#33403b;
+  --lm:#7fb5de; --lm-soft:#1c2c38; --td:#e39a72; --td-soft:#352419; --ctl:#b8c77a; --ctl-soft:#272b1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px}
+.wrap{max-width:1080px;margin:0 auto;display:grid;gap:14px}
+h1{font:600 clamp(1.6rem,3.5vw,2.2rem)/1.15 var(--display);margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:70ch;margin:6px 0 10px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.tag{font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.tag b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--fg);color:var(--bg);font-weight:500;letter-spacing:0}
+h2{font:600 1.1rem/1.25 var(--display);margin:0 0 6px;text-wrap:balance}
+p{margin:0}
+.small{font-size:13px;color:var(--muted)}
+code,.mono{font-family:var(--mono);font-size:12.5px}
+.arrow{display:grid;place-items:center;color:var(--muted);height:22px}
+.arrow svg{width:16px;height:22px}
+.lanes{display:grid;grid-template-columns:1fr 1.2fr;gap:14px}
+.lane{display:grid;gap:10px;align-content:start;min-width:0}
+.lane-head{font:600 13px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;padding:8px 12px;border-radius:6px}
+.lm .lane-head{background:var(--lm-soft);color:var(--lm)}
+.td .lane-head{background:var(--td-soft);color:var(--td)}
+.step{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:8px;padding:12px 14px;min-width:0}
+.lm .step{--c:var(--lm)} .td .step{--c:var(--td)}
+.step h3{font:600 14.5px/1.3 var(--body);margin:0 0 4px}
+.step ul{margin:4px 0 0;padding-left:18px} .step li{margin:2px 0}
+.mini{height:14px;display:grid;place-items:center;color:var(--muted)} .mini svg{width:12px;height:14px}
+.tbl{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;font-size:12.5px;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font:500 11px/1.2 var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+td.hi{font-weight:600;color:var(--lm)}
+.targets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.pdb{border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.pdb .id{font:600 1.15rem/1 var(--mono)}
+.pdb.novel{border-color:var(--ctl);background:var(--ctl-soft)}
+.ctl{border-left:3px solid var(--ctl);background:var(--ctl-soft)}
+.ctl h2{color:var(--ctl)}
+.find{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.find div{border-top:2px solid var(--line);padding-top:8px;font-size:13.5px}
+.find strong{display:block;font-family:var(--display);font-size:15px;margin-bottom:2px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--k)}
+.db{font:12px/1.45 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-x:auto;white-space:pre;margin-top:8px}
+.db .s{color:var(--muted)} .db .p1{color:var(--lm)} .db .p2{color:var(--td);font-weight:500}
+.pill{display:inline-block;font:500 11px/1 var(--mono);padding:3px 7px;border-radius:999px;background:var(--td-soft);color:var(--td);letter-spacing:.04em}
+@media (max-width:760px){.lanes,.find{grid-template-columns:1fr}.targets{grid-template-columns:repeat(2,1fr)}}
+.tree-wrap{overflow-x:auto;margin-top:10px;padding-bottom:6px}
+.tree ul{list-style:none;margin:0;padding:0 0 0 22px;display:flex;flex-direction:column;position:relative}
+.tree ul::before{content:"";position:absolute;left:0;top:50%;width:22px;border-top:1.5px solid var(--line)}
+.tree li{display:flex;align-items:center;position:relative;padding:3px 0 3px 22px}
+.tree li::before{content:"";position:absolute;left:0;top:50%;width:22px;border-top:1.5px solid var(--line)}
+.tree li::after{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--line)}
+.tree li:first-child::after{top:50%}
+.tree li:last-child::after{bottom:50%}
+.tree li:only-child::after{display:none}
+.tree>ul{padding-left:0}
+.tree>ul::before,.tree>ul>li::before,.tree>ul>li::after{display:none}
+.tree>ul>li{padding-left:0}
+.n{flex:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:var(--surface);font-size:13px;line-height:1.3;white-space:nowrap}
+.n small{display:block;color:var(--muted);font-size:11.5px}
+.n.root{background:var(--fg);color:var(--bg);border-color:var(--fg);font:600 14px/1.3 var(--display)}
+.n.b{font-weight:600;border-left:3px solid var(--k)}
+.n.leaf{border-style:dashed}
+.t-gt{--k:var(--muted)} .t-lm{--k:var(--lm)} .t-td{--k:var(--td)} .t-ctl{--k:var(--ctl)}
+.t-lm .n:not(.b){background:var(--lm-soft)} .t-td .n:not(.b){background:var(--td-soft)} .t-ctl .n:not(.b){background:var(--ctl-soft)}
+.dsvg{min-width:860px;width:100%;height:auto;color:var(--fg);display:block}
+.dsvg .bx{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.dsvg .ln{stroke:currentColor;stroke-width:1.3;fill:none;opacity:.5}
+.dsvg .dot{fill:currentColor;opacity:.6}
+.dsvg .bead-p{fill:var(--muted)} .dsvg .bead-c{fill:currentColor;opacity:.7} .dsvg .bead-b{fill:var(--lm)}
+.dsvg .chain{stroke:currentColor;stroke-width:1.4;fill:none;opacity:.45}
+.dsvg .rung{stroke:var(--lm);stroke-width:1.8;stroke-linecap:round}
+.dsvg .pull{stroke:var(--lm);stroke-width:1.4;stroke-dasharray:3 3;fill:none}
+.dsvg .pk{stroke:var(--td);stroke-width:1.8;stroke-linecap:round}
+.dsvg .pkpull{stroke:var(--td);stroke-width:1.4;stroke-dasharray:3 3;fill:none}
+.dsvg .rep{fill:var(--td-soft);stroke:var(--td);stroke-width:1}
+.dsvg .t{fill:currentColor;font-family:var(--body);font-size:12px;font-weight:500}
+.dsvg .ts{fill:var(--muted);font-family:var(--body);font-size:10.5px}
+.dsvg .th{fill:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.09em}
+.links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:10px 0 0;font-size:14px}.links a{color:var(--lm);font-weight:500;text-decoration:none;border-bottom:1px solid currentColor}.links a:hover,.links a:focus-visible{color:var(--fg)}
+</style>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+  const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const css = getComputedStyle(document.documentElement);
+  const v = n => css.getPropertyValue(n).trim();
+  mermaid.initialize({ startOnLoad: true, securityLevel: "strict", theme: "base",
+    flowchart: { useMaxWidth: false },
+    themeVariables: { darkMode: dark, background: v("--bg"), mainBkg: v("--surface"), primaryColor: v("--surface"),
+      primaryTextColor: v("--fg"), lineColor: v("--muted"), primaryBorderColor: v("--line"), nodeBorder: v("--line"),
+      edgeLabelBackground: v("--bg"), fontFamily: "IBM Plex Sans, system-ui, sans-serif", fontSize: "15px" } });
+</script>
+<style>.mermaid{background:none;border:0;margin:4px 0}.mermaid svg{display:block;margin:0 auto}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>RibonanzaNet2 + SimRNA protocol</h1>
+    <p class="lede">A language model and a 3D folding program, from different papers, joined by one hand-off. The only input is the RNA sequence: RibonanzaNet2 reads it and proposes base pairs, including pseudoknots, and SimRNA folds a 3D chain under those pairs. The crystal structure is never an input. It is used only after the prediction, to score it, and in a separate validation experiment (section 3) that compared RibonanzaNet2's pairs with other sources.</p>
+    <div class="legend"><span style="--k:var(--lm)">Language-model lane</span><span style="--k:var(--td)">3D folding lane</span><span style="--k:var(--ctl)">Evaluation only, after the prediction</span></div>
+    <p class="links"><a href="https://github.com/Kmalekza/rnet2-simrna">Code on GitHub</a><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/results/report.pdf">PDF report</a><a href="https://github.com/Kmalekza/rnet2-simrna/tree/main/results/pipeline">Predicted 3D models</a><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/README.md">Install and run</a></p>
+  </header>
+
+  <section class="stage" id="dataflow">
+    <div class="tag">Data flow</div>
+    <h2>How each step feeds the next</h2>
+    <p class="small">The pipeline as it runs (<code>scripts/run_slurm.sh</code> or <code>scripts/run_local.sh</code>). Boxes are steps, labels on the arrows are the files passed between them, cylinders are inputs and model weights, rounded ends are outputs. Blue is the language model, orange is SimRNA, green is evaluation. The reference structure (dashed) joins only at the scoring step, after the model is built, and can be left out.</p>
+    <div class="tree-wrap">
+<pre class="mermaid">
+flowchart TB
+  SEQ[("INPUT: RNA sequence<br/>A/C/G/U string or FASTA")]
+  W2[("RibonanzaNet2 weights<br/>frozen, 101M parameters<br/>scripts/get_weights.sh")]
+  TR[("Training RNAs<br/>SPOT-RNA PDB TR1 + 500 bpRNA")]
+  SIM[("SimRNA 3.20<br/>energy tables in data/")]
+  XT[("Reference structure, optional<br/>experimental, same sequence")]
+
+  PROBE["head selection, done once beforehand<br/>pick the best attention head"]
+  PREP["job 1 · rnet2_simrna.cli prep<br/>RibonanzaNet2 head L25H1 → base pairs<br/>split into dot-bracket layers"]
+  FOLD["job 2 · SimRNA, 8 runs in parallel<br/>10 replicas × 1.6 M steps each"]
+  POST["job 3 · rnet2_simrna.cli post<br/>pool, cluster, rebuild all atoms"]
+  SC["score, only if a reference is given<br/>US-align · rnapolis"]
+
+  O1(["pairs.txt<br/>base pairs, pseudoknots in [ ]"])
+  O2(["model_1.pdb = prediction<br/>model_2..5.pdb"])
+  O3(["report.md · report.json<br/>TM · RMSD · INF"])
+
+  TR -->|"612 RNAs with known pairs"| PROBE
+  W2 --> PROBE
+  PROBE -->|"head index 288, fixed in lm.py"| PREP
+  SEQ --> PREP
+  W2 --> PREP
+  PREP --> O1
+  PREP -->|"runs/seq + runs/ss"| FOLD
+  SIM --> FOLD
+  FOLD -->|"r01..r08_01..10.trafl"| POST
+  POST --> O2
+  O2 --> SC
+  XT -.->|"evaluation only"| SC
+  SC --> O3
+
+  classDef lm stroke:#4a8bbf,stroke-width:2px
+  classDef td stroke:#c2693a,stroke-width:2px
+  classDef ctl stroke:#7d8f3a,stroke-width:2px
+  classDef src stroke:#8a9590,stroke-width:1.5px,stroke-dasharray:4 3
+  class PROBE,PREP,O1 lm
+  class FOLD,POST,O2 td
+  class SC,O3 ctl
+  class SEQ,W2,TR,SIM,XT src
+</pre>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="tag"><b>1</b> Targets</div>
+    <h2>The three exercise riboswitches</h2>
+    <p class="small">The three targets of the exercise, all part of RNAnneal's 16-riboswitch benchmark. Each has at least one pseudoknot, the case EternaFold-type tools cannot predict. Pair counts are canonical base pairs (AU, GC, GU) annotated from the crystal with rnapolis, numbered on the modelled chain; RNAnneal's Table I lists slightly different constructs and counts (53 nt for 6TFF, 90 nt for 6Q57, 5 pseudoknot pairs for 6WJR).</p>
+    <div class="targets">
+      <div class="pdb"><div class="id">6TFF</div><div class="small">NAD⁺ riboswitch · 52 nt · 20 pairs, 2 in pseudoknot</div></div>
+      <div class="pdb"><div class="id">6WJR</div><div class="small">FMN riboswitch · 112 nt · 32 pairs, 4 in pseudoknot</div></div>
+      <div class="pdb"><div class="id">6Q57</div><div class="small">THF riboswitch · 89 nt · 30 pairs, 5 in pseudoknot</div></div>
+    </div>
+  </section>
+
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 16 22"><path d="M8 0v18M3 13l5 6 5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+  <div class="lanes">
+    <div class="lane lm">
+      <div class="lane-head">2A · Language model: which letters pair?</div>
+      <div class="step">
+        <h3>Sequence only</h3>
+        <p class="small">The A/C/G/U string. No alignment of relatives, no template, no structure.</p>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>RibonanzaNet2, frozen</h3>
+        <p class="small">48 layers, 12 attention heads each, plus a running table of notes on every pair of letters. Trained on chemical-probing data from millions of RNAs, not on 3D structures.</p>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>Read one attention head: layer 25, head 1</h3>
+        <ul class="small">
+          <li>Chosen among 576 heads on 612 training RNAs</li>
+          <li>Not tuned on the three targets, but the 612 include 4LVW, a 99% copy of 6Q57; it influenced only which of the 576 heads was read</li>
+          <li>Close to IPknot and EternaFold in pair accuracy on 185 test RNAs (mean F1 within 0.02), and finds about 10× more pseudoknot pairs on 60 structures released after April 2025</li>
+        </ul>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>Decode pairs (rules fixed before scoring)</h3>
+        <ul class="small">
+          <li>|i − j| ≥ 4; AU / GC / GU only</li>
+          <li>Greedy, one partner per letter, round(0.3 L) pairs</li>
+          <li>Crossing pairs are kept: those are the pseudoknots</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lane td">
+      <div class="lane-head">2B · SimRNA: fold a 3D chain under those pairs</div>
+      <div class="step">
+        <h3>Hand-off: pairs as dot-bracket layers</h3>
+        <p class="small">SimRNA takes one line of brackets per layer of pairs that don't cross. The pseudoknot goes on its own line. 6Q57, RibonanzaNet2 arm:</p>
+<div class="db"><span class="s">GGAGAGUAGAUGAUUCGCGUUAAGUGUGUGUGAAUGGGAUGUCGUCACACAACGAAGCGAGAGCGCGGUGAAUCAUUGCAUCCGCUCCA</span>
+<span class="p1">((((.....((((((((((....(...((((((.(........)))))))..)..........)))...)))))))........)))).</span>
+<span class="p2">....................................(((((.....................................)))))......</span></div>
+        <p class="small" style="margin-top:6px">Line 2 is the pseudoknot: all 5 of its crystal pairs are found by RibonanzaNet2, none by EternaFold.</p>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>Replica-exchange Monte Carlo folding</h3>
+        <ul class="small">
+          <li>Each nucleotide is 5 beads; energy from statistics of known RNA structures</li>
+          <li>Given pairs are added as attractive restraints</li>
+          <li>10 copies at temperatures 1.35 → 0.90, swapping as they go</li>
+          <li>8 independent runs × 10 copies × 1.6 M steps (10% of the SimRNA benchmark length)</li>
+          <li>10–40 min per run on 10 CPU cores, depending on length; all 96 runs (3 RNAs × 4 sources of pairs × 8) in parallel</li>
+        </ul>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>Pick the answer by clustering</h3>
+        <ul class="small">
+          <li>Pool all 32,080 snapshots per RNA and arm</li>
+          <li>Keep the lowest-energy 1%, group them at 0.1 × L Å RMSD</li>
+          <li>Centre of the largest group = the prediction; groups 2–5 kept as alternatives</li>
+          <li>Rebuild all atoms from the beads</li>
+        </ul>
+      </div>
+      <div class="mini" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M6 0v11M2 8l4 5 4-5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div class="step">
+        <h3>Score, after the prediction (optional)</h3>
+        <p class="small">Needs an experimental structure of the same RNA, which plays no part in building the model.</p>
+        <ul class="small">
+          <li>TM-score and C1′ RMSD (US-align; TM &gt; 0.45 ≈ right fold)</li>
+          <li>INF: agreement between the model's and the crystal's base pairs, √(precision × recall), 0–1</li>
+          <li>Pseudoknot pairs formed</li>
+          <li>RMSD and INF are the measures RNAnneal reports, so the two can be compared</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 16 22"><path d="M8 0v18M3 13l5 6 5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+  <section class="stage ctl">
+    <div class="tag"><b>3</b> Validation experiment, not part of the protocol</div>
+    <h2>Was RibonanzaNet2 the right source of pairs?</h2>
+    <p class="small">To justify the protocol, SimRNA was also run with three other sources of pairs and the results compared. Only the pairs change between arms, so any difference in the 3D result comes from the pairs. EternaFold stands in for the pairing step RNAnneal uses; it cannot produce pseudoknots. The crystal-pairs arm is a ceiling control: it shows the best SimRNA can do with perfect pairs, and is the only place the crystal was ever fed to SimRNA. The protocol itself uses only the rnet2 arm.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Arm</th><th>Pairs from</th><th>6TFF</th><th>6WJR</th><th>6Q57</th></tr></thead>
+      <tbody>
+        <tr><td>nocon</td><td>none (SimRNA alone)</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>eterna</td><td>EternaFold</td><td>17/18 · pk 0</td><td>23/33 · pk 0</td><td>20/31 · pk 0</td></tr>
+        <tr><td><b>rnet2</b></td><td><b>RibonanzaNet2 L25H1</b></td><td class="hi">16/16 · pk 0</td><td class="hi">23/34 · pk 2</td><td class="hi">22/27 · pk 5</td></tr>
+        <tr><td>xtal</td><td>crystal structure</td><td>20/20 · pk 2</td><td>32/32 · pk 4</td><td>30/30 · pk 5</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">Cells: correct / given pairs · crystal pseudoknot pairs among them.</p>
+  </section>
+
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 16 22"><path d="M8 0v18M3 13l5 6 5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+  <section class="stage">
+    <div class="tag"><b>4</b> What it tests</div>
+    <div class="find">
+      <div><strong>Does the language model help 3D?</strong>rnet2 vs eterna: same folding, better pairs and pseudoknots. A gain here is the language model's contribution.</div>
+      <div><strong>How much is left?</strong>rnet2 vs xtal: the gap is the cost of the language model's wrong or missing pairs. xtal vs crystal: the limit of SimRNA itself.</div>
+      <div><strong>How does it compare with RNAnneal?</strong>RNAnneal benchmarked the same three riboswitches with EternaFold-type pairs and FARFAR2. Section 7 sets its published numbers next to ours.</div>
+    </div>
+  </section>
+
+  <div class="arrow" aria-hidden="true"><svg viewBox="0 0 16 22"><path d="M8 0v18M3 13l5 6 5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+  <section class="stage" id="results">
+    <div class="tag"><b>5</b> What came out</div>
+    <h2>The pairs reach 3D; the overall fold does not</h2>
+    <p class="small">Largest cluster per RNA and arm, scored against the crystal. TM above 0.45 ≈ right fold. RMSD is over the whole chain, residue by residue. INF is the agreement between the model's and the crystal's base pairs, √(precision × recall). pk counts crystal pseudoknot pairs formed.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>RNA</th><th>Measure</th><th>none</th><th>EternaFold</th><th>RibonanzaNet2</th><th>crystal pairs</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="3">6TFF</td><td>TM</td><td>0.34</td><td>0.29</td><td>0.26</td><td>0.43</td></tr>
+        <tr><td>RMSD Å</td><td>13.9</td><td>13.2</td><td>13.8</td><td>2.8</td></tr>
+        <tr><td>INF · pk</td><td>0.60 · 0/2</td><td>0.90 · 0/2</td><td class="hi">0.92 · 0/2</td><td>1.00 · 2/2</td></tr>
+        <tr><td rowspan="3">6WJR</td><td>TM</td><td>0.19</td><td>0.24</td><td class="hi">0.28</td><td>0.24</td></tr>
+        <tr><td>RMSD Å</td><td>30.4</td><td>19.5</td><td>21.7</td><td>20.5</td></tr>
+        <tr><td>INF · pk</td><td>0.00 · 0/4</td><td>0.57 · 0/4</td><td>0.58 · 0/4</td><td>0.80 · 2/4</td></tr>
+        <tr><td rowspan="3">6Q57</td><td>TM</td><td>0.28</td><td>0.26</td><td class="hi">0.32</td><td>0.29</td></tr>
+        <tr><td>RMSD Å</td><td>26.0</td><td>13.0</td><td>13.8</td><td>12.4</td></tr>
+        <tr><td>INF · pk</td><td>0.00 · 0/5</td><td>0.56 · 0/5</td><td class="hi">0.66 · 5/5</td><td>0.88 · 5/5</td></tr>
+        <tr><td rowspan="3"><b>mean</b></td><td>TM</td><td>0.27</td><td>0.26</td><td class="hi">0.28</td><td>0.32</td></tr>
+        <tr><td>RMSD Å</td><td>23.4</td><td>15.2</td><td>16.4</td><td>11.9</td></tr>
+        <tr><td>INF</td><td>0.20</td><td>0.67</td><td class="hi">0.72</td><td>0.89</td></tr>
+      </tbody>
+    </table></div>
+    <div class="find" style="margin-top:14px">
+      <div><strong>The language model's pairs get through</strong>With RibonanzaNet2 pairs SimRNA forms more real pairs than with EternaFold (INF 0.72 vs 0.67) and scores a slightly higher TM (0.28 vs 0.26), though not a lower RMSD (16.4 vs 15.2 Å). It is the only predicted source that builds 6Q57's pseudoknot, 5 of 5 pairs.</div>
+      <div><strong>The fold is still wrong</strong>Every model is below TM 0.45. Even the crystal's own pairs average 12 Å off, and only the 52-nt 6TFF folds well with them (2.8 Å). Helices form but are packed wrongly: the limit is SimRNA's 3D arrangement, not the pairs.</div>
+      <div><strong>A short search</strong>Runs were 10% of SimRNA's published benchmark length, and TM-score is harsh on RNAs of 50–110 nt. Longer runs may help a little, but section 6 shows the near-crystal shapes were mostly never reached.</div>
+    </div>
+  </section>
+
+  <section class="stage" id="sampling">
+    <div class="tag"><b>6</b> Every snapshot, not just the answer</div>
+    <h2>Was a near-crystal shape ever produced?</h2>
+    <p class="small">All 32,080 snapshots per RNA and arm, compared with the crystal (C4′ backbone, residue by residue). The first numbers are the closest single snapshot SimRNA ever produced. If that is far off, the answer was never sampled; if it is close but the pick is far, the selection failed. This is the split RNAnneal reports as sampling vs scoring.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>RNA</th><th>none</th><th>EternaFold</th><th>RibonanzaNet2</th><th>crystal pairs</th><th>snapshots &lt; 5 Å (RNet2)</th><th>snapshots &lt; 15 Å (RNet2)</th><th>RNet2 pick</th></tr></thead>
+      <tbody>
+        <tr><td>6TFF</td><td>9.3</td><td>3.6</td><td class="hi">3.1</td><td>2.1</td><td>1.0%</td><td>90%</td><td>13.8</td></tr>
+        <tr><td>6WJR</td><td>20.1</td><td>14.9</td><td class="hi">13.6</td><td>16.3</td><td>0</td><td>0.07%</td><td>21.7</td></tr>
+        <tr><td>6Q57</td><td>15.3</td><td>8.9</td><td class="hi">6.5</td><td>7.1</td><td>0</td><td class="hi">40%</td><td>13.8</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl" style="margin-top:10px"><table>
+      <thead><tr><th>Snapshots &lt; 15 Å · median RMSD</th><th>no pairs</th><th>EternaFold</th><th>RibonanzaNet2</th><th>crystal pairs</th></tr></thead>
+      <tbody>
+        <tr><td>6TFF</td><td>4% · 24.6 Å</td><td>91% · 12.2 Å</td><td>90% · 12.1 Å</td><td>89% · 9.6 Å</td></tr>
+        <tr><td>6WJR</td><td>0 · 36.3 Å</td><td>0.003% (1 snapshot) · 25.5 Å</td><td class="hi">0.07% · 22.7 Å</td><td>0 · 24.9 Å</td></tr>
+        <tr><td>6Q57</td><td>0 · 32.9 Å</td><td>5% · 24.2 Å</td><td class="hi">40% · 15.5 Å</td><td>49% · 15.1 Å</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">Closest snapshot in Å. “RNet2 pick” is the whole-chain RMSD of the largest-cluster answer.</p>
+    <div class="find" style="margin-top:14px">
+      <div><strong>Mostly never sampled</strong>Only 6TFF ever got below 5 Å. For 6WJR and 6Q57 the closest of 32,080 snapshots is 6.5–20 Å away, whatever pairs were given.</div>
+      <div><strong>RibonanzaNet2 gets closest</strong>Its pairs give the closest snapshot of any predicted source on all three RNAs, and beat the crystal's own pairs on 6WJR and 6Q57. On 6Q57, 40% of its snapshots are within 15 Å, against 5% with EternaFold: the pseudoknot pulls the whole search toward the right region, almost as well as the crystal's pairs (49%).</div>
+      <div><strong>Selection fails too</strong>SimRNA's energy hardly tracks correctness (rank correlation 0.1–0.3). On 6TFF a 3.1 Å snapshot exists, yet the pick is 13.8 Å. A better score, the part RNAnneal learns, would help here.</div>
+    </div>
+  </section>
+
+  <section class="stage" id="rnanneal">
+    <div class="tag"><b>7</b> Compared with RNAnneal</div>
+    <h2>Same three riboswitches, two sequence-only pipelines</h2>
+    <p class="small">RNAnneal (Herron et al., bioRxiv 2026, Tiwary lab) benchmarked 16 riboswitches including these three. Its numbers below are from the preprint: 6TFF from the table in Fig. 3e (exact), the rest read off Figs. 2e–h (approximate, about ±1 Å and ±0.02).</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Step</th><th>RNAnneal</th><th>RibonanzaNet2 + SimRNA</th></tr></thead>
+      <tbody>
+        <tr><td>Base pairs</td><td>EternaFold, LinearFold, LinearAliFold (no pseudoknots)</td><td>RibonanzaNet2 head L25H1 (pseudoknots kept)</td></tr>
+        <tr><td>3D building</td><td>FARFAR2, then 100 ns MD on 200 models</td><td>SimRNA replica-exchange Monte Carlo</td></tr>
+        <tr><td>Candidates per RNA</td><td>20,000</td><td>32,080</td></tr>
+        <tr><td>Choosing the answer</td><td>RNAnneal score (Thermodynamic Maps, learned per RNA), 10 ranked states</td><td>Largest cluster of the lowest-energy 1%, 5 models</td></tr>
+        <tr><td>Compute per RNA</td><td>about 20 µs of MD on GPUs (estimate from the methods)</td><td>about 15–55 CPU-core hours (8 runs × 10 cores × 10–40 min), done in under an hour</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl" style="margin-top:12px"><table>
+      <thead><tr><th>RNA</th><th>RNAnneal: top-ranked</th><th>RNAnneal: closest candidate</th><th>RibonanzaNet2 + SimRNA: model_1</th><th>RibonanzaNet2 + SimRNA: closest snapshot</th><th>Pseudoknot built</th></tr></thead>
+      <tbody>
+        <tr><td>6TFF</td><td>14.0 Å · INF 0.63</td><td>2.3 Å · INF 0.90 (ranked 5th)</td><td>13.8 Å · INF 0.92</td><td class="hi">3.1 Å</td><td>neither</td></tr>
+        <tr><td>6WJR</td><td>unclear in the preprint</td><td>~15 Å · INF ≤ 0.72</td><td>21.7 Å · INF 0.58</td><td class="hi">13.6 Å</td><td>neither</td></tr>
+        <tr><td>6Q57</td><td>&gt; 10 Å · INF &lt; 0.7</td><td>~7.5 Å · INF ≤ 0.82</td><td>13.8 Å · INF 0.66</td><td class="hi">6.5 Å</td><td class="hi">RibonanzaNet2 + SimRNA, 5 of 5 pairs</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl" style="margin-top:12px"><table>
+      <thead><tr><th>Choosing the right shape</th><th>6TFF</th><th>6WJR</th><th>6Q57</th></tr></thead>
+      <tbody>
+        <tr><td>RNAnneal score, BEDROC</td><td class="hi">~0.80</td><td class="hi">~0.71</td><td class="hi">~0.90</td></tr>
+        <tr><td>Rosetta score, BEDROC</td><td>~0.16</td><td>~0.14</td><td>~0.57</td></tr>
+        <tr><td>DES-AMBER force field, BEDROC</td><td>~0.20</td><td>~0.54</td><td>~0.55</td></tr>
+        <tr><td>SimRNA energy vs RMSD, rank correlation (RibonanzaNet2 + SimRNA)</td><td>0.11</td><td>0.16</td><td>0.34</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">BEDROC (0–1) measures how strongly a score puts near-crystal candidates first. The rank correlation for RibonanzaNet2 + SimRNA is a different measure; both say whether the energy tracks correctness, and SimRNA's hardly does. The preprint's text says 6WJR had a representative within 5 Å, but its Fig. 2e shows no candidate closer than about 15 Å, so 6WJR's top-ranked entry is left open. RNAnneal's RMSD is likely over all atoms; RibonanzaNet2 + SimRNA is scored over one backbone atom per nucleotide.</p>
+    <div class="find" style="margin-top:14px">
+      <div><strong>Same picture on 6TFF</strong>Both pipelines put a wrong shape first (14.0 vs 13.8 Å) and both produce a near-crystal shape only as a minor alternative (2.3 vs 3.1 Å). RNAnneal's is a ranked state; for RibonanzaNet2 + SimRNA it is a single snapshot, and the best model is at 6.4 Å.</div>
+      <div><strong>RibonanzaNet2 + SimRNA reaches a little closer</strong>On 6WJR and 6Q57 the closest shape RibonanzaNet2 + SimRNA produces is 13.6 and 6.5 Å, against about 15 and 7.5 Å for RNAnneal, and only RibonanzaNet2 + SimRNA forms 6Q57's pseudoknot. That is the RibonanzaNet2 pairs at work, at a fraction of the compute.</div>
+      <div><strong>RNAnneal chooses far better</strong>Its score ranks near-crystal shapes first much more strongly than Rosetta or the force field, while SimRNA's energy barely tracks correctness. The natural combination: RibonanzaNet2 pairs to generate candidates, RNAnneal's score to pick among them.</div>
+    </div>
+  </section>
+
+  <section class="stage" id="inside">
+    <div class="tag">Inside the 3D model</div>
+    <h2>How SimRNA turns a sequence and its pairs into coordinates</h2>
+    <p class="small">SimRNA has no neural network. It is a physics-style simulation: a simplified chain is moved at random, and each move is kept or rejected by an energy score. The language model's pairs enter only as extra energy rewards.</p>
+    <div class="tree-wrap">
+    <figure style="margin:0">
+    <svg class="dsvg" viewBox="0 0 940 300" role="img" aria-label="Each nucleotide becomes five beads; the chain starts as a circle; ten copies at different temperatures make random moves and swap temperatures; restraints pull the predicted pairs together, including the pseudoknot; the result is a folded chain, and thousands of snapshots are clustered to pick the answer.">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+
+      <text class="th" x="85" y="18" text-anchor="middle">MODEL</text>
+      <text class="th" x="250" y="18" text-anchor="middle">START</text>
+      <text class="th" x="455" y="18" text-anchor="middle">SAMPLE</text>
+      <text class="th" x="690" y="18" text-anchor="middle">FOLD UNDER PAIRS</text>
+      <text class="th" x="870" y="18" text-anchor="middle">PICK</text>
+
+      <!-- bead model -->
+      <rect class="bx" x="20" y="40" width="130" height="150" rx="5"/>
+      <circle class="bead-p" cx="60" cy="70" r="5"/><text class="ts" x="72" y="74">P</text>
+      <line class="chain" x1="60" y1="75" x2="60" y2="100"/>
+      <circle class="bead-c" cx="60" cy="105" r="5"/><text class="ts" x="72" y="109">C4′</text>
+      <line class="chain" x1="60" y1="110" x2="60" y2="135"/>
+      <circle class="bead-b" cx="60" cy="140" r="5"/><text class="ts" x="72" y="144">N</text>
+      <line class="chain" x1="60" y1="145" x2="50" y2="165"/><line class="chain" x1="60" y1="145" x2="76" y2="165"/>
+      <circle class="bead-b" cx="50" cy="168" r="4.5"/><circle class="bead-b" cx="76" cy="168" r="4.5"/>
+      <text class="ts" x="86" y="172">base</text>
+      <text class="ts" x="85" y="206" text-anchor="middle">5 beads per nucleotide</text>
+      <text class="ts" x="85" y="220" text-anchor="middle">all atoms rebuilt at the end</text>
+
+      <line class="ln" x1="154" y1="115" x2="182" y2="115" marker-end="url(#ah)"/>
+
+      <!-- circle start -->
+      <rect class="bx" x="190" y="60" width="120" height="110" rx="5"/>
+      <g>
+        <circle class="dot" cx="250" cy="78" r="3.4"/><circle class="dot" cx="273" cy="84" r="3.4"/>
+        <circle class="dot" cx="289" cy="101" r="3.4"/><circle class="dot" cx="293" cy="124" r="3.4"/>
+        <circle class="dot" cx="283" cy="145" r="3.4"/><circle class="dot" cx="263" cy="157" r="3.4"/>
+        <circle class="dot" cx="240" cy="158" r="3.4"/><circle class="dot" cx="219" cy="146" r="3.4"/>
+        <circle class="dot" cx="208" cy="125" r="3.4"/><circle class="dot" cx="211" cy="101" r="3.4"/>
+        <circle class="dot" cx="227" cy="84" r="3.4"/>
+      </g>
+      <text class="ts" x="250" y="186" text-anchor="middle">chain laid out in a circle</text>
+
+      <line class="ln" x1="314" y1="115" x2="342" y2="115" marker-end="url(#ah)"/>
+
+      <!-- replica ladder -->
+      <rect class="bx" x="350" y="40" width="210" height="150" rx="5"/>
+      <text class="ts" x="362" y="58">temperature</text>
+      <text class="ts" x="362" y="72">hot 1.35</text>
+      <rect class="rep" x="420" y="64" width="128" height="12" rx="3"/>
+      <rect class="rep" x="420" y="82" width="128" height="12" rx="3"/>
+      <rect class="rep" x="420" y="100" width="128" height="12" rx="3"/>
+      <rect class="rep" x="420" y="118" width="128" height="12" rx="3"/>
+      <rect class="rep" x="420" y="136" width="128" height="12" rx="3"/>
+      <rect class="rep" x="420" y="154" width="128" height="12" rx="3"/>
+      <text class="ts" x="362" y="166">cold 0.90</text>
+      <path class="ln" d="M470 78 C 478 88 478 92 486 100" marker-end="url(#ah)"/>
+      <path class="ln" d="M500 114 C 492 124 492 128 484 136" marker-end="url(#ah)"/>
+      <text class="ts" x="455" y="204" text-anchor="middle">10 copies make random moves; neighbours</text>
+      <text class="ts" x="455" y="218" text-anchor="middle">swap temperatures so none gets stuck</text>
+
+      <line class="ln" x1="564" y1="115" x2="592" y2="115" marker-end="url(#ah)"/>
+
+      <!-- fold under restraints -->
+      <rect class="bx" x="600" y="40" width="180" height="150" rx="5"/>
+      <polyline class="chain" points="640,60 640,80 640,100 640,120 646,138 658,146 670,138 676,120 676,100 676,80 676,60 690,52 706,60 720,72 734,60 748,52 760,62 760,82 760,102 748,112 734,102 720,92"/>
+      <line class="rung" x1="640" y1="60" x2="676" y2="60"/>
+      <line class="rung" x1="640" y1="80" x2="676" y2="80"/>
+      <line class="rung" x1="640" y1="100" x2="676" y2="100"/>
+      <line class="rung" x1="640" y1="120" x2="676" y2="120"/>
+      <path class="pkpull" d="M658 146 C 700 176 736 150 734 102"/>
+      <line class="pk" x1="652" y1="144" x2="660" y2="150"/>
+      <line class="pk" x1="730" y1="104" x2="738" y2="100"/>
+      <circle class="dot" cx="640" cy="60" r="3.2"/><circle class="dot" cx="640" cy="80" r="3.2"/>
+      <circle class="dot" cx="640" cy="100" r="3.2"/><circle class="dot" cx="640" cy="120" r="3.2"/>
+      <circle class="dot" cx="658" cy="146" r="3.2"/>
+      <circle class="dot" cx="676" cy="60" r="3.2"/><circle class="dot" cx="676" cy="80" r="3.2"/>
+      <circle class="dot" cx="676" cy="100" r="3.2"/><circle class="dot" cx="676" cy="120" r="3.2"/>
+      <circle class="dot" cx="720" cy="72" r="3.2"/><circle class="dot" cx="760" cy="82" r="3.2"/>
+      <circle class="dot" cx="734" cy="102" r="3.2"/>
+      <text class="ts" x="690" y="204" text-anchor="middle">blue: helix pairs held by restraints</text>
+      <text class="ts" x="690" y="218" text-anchor="middle">orange: pseudoknot pair pulled together</text>
+
+      <line class="ln" x1="784" y1="115" x2="812" y2="115" marker-end="url(#ah)"/>
+
+      <!-- clustering -->
+      <rect class="bx" x="820" y="60" width="100" height="110" rx="5"/>
+      <circle cx="852" cy="100" r="20" fill="var(--td-soft)" stroke="var(--td)" stroke-width="1.2"/>
+      <circle class="dot" cx="846" cy="96" r="2.6"/><circle class="dot" cx="856" cy="92" r="2.6"/><circle class="dot" cx="858" cy="104" r="2.6"/>
+      <circle class="dot" cx="848" cy="108" r="2.6"/><circle class="dot" cx="852" cy="100" r="2.6"/><circle class="dot" cx="862" cy="98" r="2.6"/>
+      <circle cx="896" cy="140" r="11" fill="none" stroke="var(--line)" stroke-width="1.2"/>
+      <circle class="dot" cx="894" cy="138" r="2.6"/><circle class="dot" cx="899" cy="143" r="2.6"/>
+      <circle class="dot" cx="892" cy="80" r="2.6"/><circle class="dot" cx="836" cy="150" r="2.6"/>
+      <text class="ts" x="870" y="186" text-anchor="middle">largest group of the</text>
+      <text class="ts" x="870" y="200" text-anchor="middle">lowest-energy 1%</text>
+
+      <path class="ln" d="M20 250 L920 250"/>
+      <text class="ts" x="470" y="272" text-anchor="middle">Repeated 8 times per RNA and arm with different random seeds, 1.6 million steps each; 401 snapshots per copy, 32,080 in total.</text>
+      <text class="ts" x="470" y="288" text-anchor="middle">Energy = SimRNA's statistical potential + restraint rewards for the given pairs. No neural network, no templates, no training on 3D structures.</text>
+    </svg>
+    <figcaption class="small" style="margin-top:10px">
+      The language model supplies the pairs and a physics-style simulation supplies the shape, so a good result can't come from a remembered 3D structure. That is also how RNAnneal works, with FARFAR2 in place of SimRNA and EternaFold-type tools in place of RibonanzaNet2.
+    </figcaption>
+    </figure>
+    </div>
+  </section>
+
+  <section class="stage" id="pipeline">
+    <div class="tag">Use it</div>
+    <h2>Run it on any sequence</h2>
+    <p class="small">The protocol is packaged as one command that, like RNAnneal, needs only the sequence. It does not include the EternaFold, no-pairs and crystal-pairs arms; those were comparisons to show that the RibonanzaNet2 pairs are worth using. A reference structure is optional and is used only to score the result, never to make it.</p>
+<div class="db"><span class="s"># sequence only: models and base pairs</span>
+bash scripts/run_slurm.sh myrna GGAGAGUAGAUGAUUCGCGUUAAGUGUGUGUGAAUGG...
+
+<span class="s"># with the experimental structure: also TM-score, RMSD and INF</span>
+bash scripts/run_slurm.sh 6Q57 GGAGAGUAGAUGAUUCG... data/structures/6Q57.cif A
+
+<span class="s"># without Slurm, on one machine</span>
+bash scripts/run_local.sh myrna myrna.fasta</div>
+    <div class="tbl"><table>
+      <thead><tr><th>Job</th><th>What it does</th><th>Resources</th><th>Time</th></tr></thead>
+      <tbody>
+        <tr><td>1 prep</td><td>Check the sequence (A/C/G/U, 10–500 nt); RibonanzaNet2 head L25H1 → base pairs incl. pseudoknots; write SimRNA inputs</td><td>1 job, 4 CPUs</td><td>~1 min</td></tr>
+        <tr><td>2 fold</td><td>8 SimRNA replica-exchange runs × 10 temperatures × 1.6 M steps, in parallel</td><td>8 jobs × 10 CPUs</td><td>10–40 min</td></tr>
+        <tr><td>3 post</td><td>Pool snapshots, cluster the lowest-energy 1%, rebuild all atoms, score if a reference was given, write the report</td><td>1 job, 1 CPU</td><td>1–5 min</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">Jobs run one after another through Slurm (set <code>SLURM_ACCOUNT</code> and <code>SLURM_PARTITION</code>; CPU only), or all on one machine with <code>scripts/run_local.sh</code>. Settings: <code>RUNS=8</code>, <code>ITERS=1600000</code>, <code>OUT=results/pipeline</code>.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Output in results/pipeline/NAME/</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>model_1.pdb</code></td><td>The prediction: all-atom 3D structure, centre of the largest cluster</td></tr>
+        <tr><td><code>model_2..5.pdb</code></td><td>Centres of the next four clusters, as alternatives</td></tr>
+        <tr><td><code>pairs.txt</code></td><td>RibonanzaNet2 base pairs in dot-bracket; pseudoknots in [ ]</td></tr>
+        <tr><td><code>report.md</code> · <code>report.json</code></td><td>Cluster sizes, and per model with a reference: TM-score, RMSD (whole chain), core RMSD, INF</td></tr>
+      </tbody>
+    </table></div>
+    <div class="find" style="margin-top:14px">
+      <div><strong>TM-score</strong>0 to 1, normalised by the reference. Above 0.45 means the same overall fold.</div>
+      <div><strong>RMSD</strong>C1′ distance in Å over the whole chain, residue by residue. The core RMSD covers only the part US-align could superpose, so it always looks better.</div>
+      <div><strong>INF</strong>Agreement between the model's and the reference's canonical base pairs, √(precision × recall), 0 to 1 (rnapolis annotation).</div>
+    </div>
+    <p class="small" style="margin-top:10px">Without a reference no accuracy score is possible; the report gives cluster sizes instead. A large first cluster means the runs agree, not that the model is right. Code: <code>scripts/run_slurm.sh</code>, <code>scripts/run_local.sh</code> and the <code>rnet2_simrna/</code> package.</p>
+    <h2 style="margin-top:16px">Example: the three riboswitches, from sequence alone</h2>
+    <p class="small">Each run was given only the sequence; the crystal was passed in for scoring after the models were built. With fixed random seeds the pipeline reproduces the snapshots and clusters of the RibonanzaNet2 arm in section 5. The final all-atom rebuild adds a small random variation: 6TFF and 6Q57 match to the digit, 6WJR's model_1 is 21.9 Å here and 21.7 Å in sections 5–7.</p>
+<div class="db"><span class="s">pairs.txt (RibonanzaNet2; [ ] and { } are pseudoknot layers)</span>
+<span class="s">6TFF</span> <span class="p1">((((((.........(((((((..(((....)))....))))))).))))))</span>
+<span class="s">6Q57</span> <span class="p1">((((.....((((((((((....(...((((((.(.</span><span class="p2">[[[[[</span><span class="p1">..)))))))..)..........)))...)))))))..</span><span class="p2">]]]]]</span><span class="p1">.)))).</span></div>
+    <div class="tbl"><table>
+      <thead><tr><th>RNA</th><th>Pairs predicted</th><th>model_1 cluster</th><th>TM</th><th>RMSD Å</th><th>core RMSD Å</th><th>INF</th><th>Best of model_2..5</th></tr></thead>
+      <tbody>
+        <tr><td>6TFF</td><td>16, all correct, no pseudoknot</td><td>63%</td><td>0.26</td><td>13.8</td><td>3.8</td><td class="hi">0.92</td><td>model_5: TM 0.38 · 6.4 Å</td></tr>
+        <tr><td>6WJR</td><td>34; 8 drawn as pseudoknot, 2 real</td><td>58%</td><td>0.19</td><td>21.9</td><td>5.2</td><td>0.57</td><td>model_2: 19.1 Å</td></tr>
+        <tr><td>6Q57</td><td>27, full 5-pair pseudoknot</td><td>96%</td><td>0.32</td><td>13.8</td><td>4.3</td><td>0.66</td><td>model_3: TM 0.34 · 11.6 Å</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">No prediction reaches the right fold (TM &lt; 0.45). On 6Q57 the runs agree strongly (96% in one cluster) on a shape 13.8 Å off, which is why cluster size is not a confidence score. Output folders: <code>results/pipeline/6TFF</code>, <code>6WJR</code>, <code>6Q57</code>.</p>
+  </section>
+
+  <section class="stage" id="files">
+    <div class="tag">Report and files</div>
+    <h2>Where everything is</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>What</th><th>Path in this repository</th></tr></thead>
+      <tbody>
+        <tr><td>PDF report of this protocol (6 pages, 4 figures)</td><td><a href="https://github.com/Kmalekza/rnet2-simrna/blob/main/results/report.pdf"><code>results/report.pdf</code></a></td></tr>
+        <tr><td>Pipeline: sequence → 3D model</td><td><code>scripts/run_slurm.sh</code>, <code>scripts/run_local.sh</code>, <code>rnet2_simrna/</code> (<code>lm.py</code>, <code>cli.py</code>, <code>score.py</code>)</td></tr>
+        <tr><td>RibonanzaNet2 weights download</td><td><code>scripts/get_weights.sh</code></td></tr>
+        <tr><td>Pipeline output for the three riboswitches</td><td><a href="https://github.com/Kmalekza/rnet2-simrna/tree/main/results/pipeline"><code>results/pipeline/</code></a> 6TFF, 6WJR, 6Q57</td></tr>
+        <tr><td>Validation runs (four sources of pairs)</td><td><code>analysis/run_validation.sh</code>, <code>analysis/collect_validation.py</code>; results in <code>results/validation/summary.csv</code>, <code>scores.csv</code></td></tr>
+        <tr><td>Every-snapshot analysis</td><td><code>results/validation/snapshots.csv.gz</code>, <code>frames_rmsd.csv</code></td></tr>
+        <tr><td>Figures and PDF</td><td><code>analysis/make_report.py</code> → <code>results/figures/</code>, <code>results/report.pdf</code></td></tr>
+        <tr><td>Targets, crystal structures, reference pairs</td><td><code>data/targets.csv</code>, <code>data/structures/</code>, <code>data/reference_pairs.json</code></td></tr>
+      </tbody>
+    </table></div>
+    <p class="small" style="margin-top:6px">Software: RibonanzaNet2 (public checkpoint), SimRNA 3.20 (academic license), EternaFold, US-align 20241108, rnapolis 0.17.0. All folding runs on CPUs through Slurm.</p>
+  </section>
+
+  <section class="stage" id="tree">
+    <div class="tag">Protocol tree</div>
+    <h2>The same protocol, as a hierarchy</h2>
+    <p class="small">Each branch splits into its inputs, methods and outputs. Dashed boxes are the measured outputs. Scroll sideways on a narrow screen.</p>
+    <div class="tree-wrap"><div class="tree"><ul><li><span class="n root">RibonanzaNet2 + SimRNA</span>
+      <ul>
+        <li class="t-gt"><span class="n b">Targets</span>
+          <ul>
+            <li><span class="n">Exercise riboswitches<small>6TFF · 6WJR · 6Q57</small></span></li>
+            <li><span class="n leaf">Crystal structures<small>scoring and the ceiling control only</small></span></li>
+          </ul></li>
+        <li class="t-lm"><span class="n b">Language model</span>
+          <ul>
+            <li><span class="n">RibonanzaNet2<small>48 layers · frozen</small></span></li>
+            <li><span class="n">Head L25H1<small>chosen on 612 training RNAs</small></span></li>
+            <li><span class="n">Decoding<small>|i−j| ≥ 4 · AU/GC/GU · 0.3 L pairs · crossings kept</small></span></li>
+            <li><span class="n leaf">Pairs + pseudoknots<small>pairs.txt</small></span></li>
+          </ul></li>
+        <li class="t-td"><span class="n b">SimRNA 3.20</span>
+          <ul>
+            <li><span class="n">Input<small>sequence + dot-bracket layers</small></span></li>
+            <li><span class="n">Sampling<small>8 runs × 10 replicas × 1.6 M steps</small></span></li>
+            <li><span class="n">Selection<small>lowest 1% · cluster at 0.1 L Å · top 5</small></span></li>
+            <li><span class="n leaf">Prediction<small>model_1.pdb · model_2..5.pdb · report.md</small></span></li>
+            <li><span class="n">Scoring</span>
+              <ul>
+                <li><span class="n leaf">TM-score · C1′ RMSD</span></li>
+                <li><span class="n leaf">INF (pairs formed)</span></li>
+                <li><span class="n leaf">Pseudoknot pairs formed</span></li>
+              </ul></li>
+          </ul></li>
+        <li class="t-ctl"><span class="n b">Validation arms<small>not part of the protocol</small></span>
+          <ul>
+            <li><span class="n">nocon<small>no pairs</small></span></li>
+            <li><span class="n">eterna<small>EternaFold, no pseudoknots</small></span></li>
+            <li><span class="n">rnet2<small>RibonanzaNet2</small></span></li>
+            <li><span class="n">xtal<small>crystal pairs, ceiling</small></span></li>
+          </ul></li>
+      </ul></li></ul></div></div>
+  </section>
+</div>
+</body>
+</html>
